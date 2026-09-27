@@ -1,0 +1,12 @@
+import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
+
+export class UpdateProfileDto {
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  fname?: string;
+}

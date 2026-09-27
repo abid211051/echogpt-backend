@@ -43,7 +43,7 @@ export class AuthService {
       },
     });
 
-    return this.createTokens(user.id, user.email);
+    return this.createTokens(user);
   }
 
   async login(loginDto: LoginDto) {
@@ -63,15 +63,16 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    return this.createTokens(user.id, user.email);
+    return this.createTokens(user);
   }
 
   async refresh(refreshDto: RefreshDto) {
-    const tokenHash = refreshDto.refreshToken;
-
     const session = await this.prisma.session.findUnique({
       where: {
-        refreshToken: tokenHash,
+        refreshToken: refreshDto.refreshToken,
+      },
+      include: {
+        user: true,
       },
     });
 
@@ -88,7 +89,10 @@ export class AuthService {
     }
 
     const accessToken = await this.jwtService.signAsync({
-      sub: session.userId,
+      sub: session.user.id,
+      email: session.user.email,
+      role: session.user.role,
+      sid: session.id,
     });
 
     return {
@@ -97,11 +101,9 @@ export class AuthService {
   }
 
   async logout(refreshDto: RefreshDto) {
-    const tokenHash = refreshDto.refreshToken;
-
     await this.prisma.session.updateMany({
       where: {
-        refreshToken: tokenHash,
+        refreshToken: refreshDto.refreshToken,
         revokedAt: null,
       },
 
@@ -115,24 +117,29 @@ export class AuthService {
     };
   }
 
-  private async createTokens(userId: string, email: string) {
-    const accessToken = await this.jwtService.signAsync({
-      sub: userId,
-      email,
-    });
-
+  private async createTokens(user: {
+    id: string;
+    email: string;
+    role: string;
+  }) {
     const refreshToken = randomBytes(32).toString('hex');
 
     const expiresAt = new Date();
-
     expiresAt.setDate(expiresAt.getDate() + 15);
 
-    await this.prisma.session.create({
+    const session = await this.prisma.session.create({
       data: {
-        userId,
+        userId: user.id,
         refreshToken,
         expiresAt,
       },
+    });
+
+    const accessToken = await this.jwtService.signAsync({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      sid: session.id,
     });
 
     return {
