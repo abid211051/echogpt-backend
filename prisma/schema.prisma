@@ -12,6 +12,17 @@ enum Role {
   ADMIN
 }
 
+enum PlanType {
+  FREE
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+}
+
 model User {
   id       String @id @default(uuid())
   email    String @unique
@@ -19,7 +30,9 @@ model User {
   password String
   role     Role   @default(USER)
 
-  sessions Session[]
+  sessions     Session[]
+  subscription Subscription?
+  usageRecords UsageRecord[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -35,4 +48,51 @@ model Session {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Plan {
+  id           String   @id @default(uuid())
+  type         PlanType @unique
+  name         String
+  monthlyLimit Int
+
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  status SubscriptionStatus @default(ACTIVE)
+
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageRecord {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  periodStart DateTime
+  periodEnd   DateTime
+
+  requestCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, periodStart])
 }

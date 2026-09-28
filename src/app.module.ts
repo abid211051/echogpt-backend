@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
-import { SubscriptionsModule } from './subscriptions/subscriptions.module.js';
+import { SubscriptionModule } from './subscriptions/subscription.module.js';
 import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './database/prisma.module.js';
 
@@ -10,7 +10,7 @@ import { PrismaModule } from './database/prisma.module.js';
     PrismaModule,
     AuthModule,
     UsersModule,
-    SubscriptionsModule,
+    SubscriptionModule,
     HealthModule,
   ],
 })

@@ -13,12 +13,14 @@ import { RefreshDto } from './dto/refresh.dto.js';
 
 import * as argon2 from 'argon2';
 import { randomBytes } from 'crypto';
+import { SubscriptionService } from '../subscriptions/subscription.service.js';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -34,13 +36,19 @@ export class AuthService {
 
     const hashedPassword = await argon2.hash(registerDto.password);
 
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        fname: registerDto.fname,
-        password: hashedPassword,
-        role: 'USER',
-      },
+    const user = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email,
+          fname: registerDto.fname,
+          password: hashedPassword,
+          role: 'USER',
+        },
+      });
+
+      await this.subscriptionService.createFreeSubscription(tx, user.id);
+
+      return user;
     });
 
     return this.createTokens(user);
